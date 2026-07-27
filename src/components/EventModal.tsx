@@ -13,6 +13,22 @@ type Props = {
   onDelete: () => void;
 };
 
+type SectionKey = "pickup" | "meal" | "homework";
+
+const SECTION_OPTIONS: { key: SectionKey; label: string; emoji: string }[] = [
+  { key: "pickup", label: "픽업", emoji: "🚗" },
+  { key: "meal", label: "식사", emoji: "🍚" },
+  { key: "homework", label: "숙제", emoji: "📚" },
+];
+
+function computeActiveSections(event: CalendarEvent): Set<SectionKey> {
+  const s = new Set<SectionKey>();
+  if (event.pickupPersonId) s.add("pickup");
+  if (event.mealMemo || event.mealChecked) s.add("meal");
+  if (event.homework.length > 0) s.add("homework");
+  return s;
+}
+
 export default function EventModal({
   event,
   members,
@@ -28,14 +44,42 @@ export default function EventModal({
   const [startTimeDraft, setStartTimeDraft] = useState(event.startTime ?? "");
   const [mealMemoDraft, setMealMemoDraft] = useState(event.mealMemo);
 
+  const [activeSections, setActiveSections] = useState<Set<SectionKey>>(() =>
+    computeActiveSections(event)
+  );
+  const [showAddMenu, setShowAddMenu] = useState(false);
+
   useEffect(() => {
     setTitleDraft(event.title);
     setStartTimeDraft(event.startTime ?? "");
     setMealMemoDraft(event.mealMemo);
+    setActiveSections(computeActiveSections(event));
+    setShowAddMenu(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event.id]);
 
   const pickupPerson = members.find((m) => m.id === event.pickupPersonId);
+
+  function addSection(key: SectionKey) {
+    setActiveSections((prev) => new Set(prev).add(key));
+    setShowAddMenu(false);
+  }
+
+  function removeSection(key: SectionKey) {
+    setActiveSections((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+    if (key === "pickup") {
+      onChange({ ...event, pickupPersonId: null, pickupChecked: false });
+    } else if (key === "meal") {
+      setMealMemoDraft("");
+      onChange({ ...event, mealMemo: "", mealChecked: false });
+    } else if (key === "homework") {
+      onChange({ ...event, homework: [] });
+    }
+  }
 
   function updateHomework(id: string, done: boolean) {
     onChange({
@@ -49,7 +93,10 @@ export default function EventModal({
     if (!text) return;
     onChange({
       ...event,
-      homework: [...event.homework, { id: `hw-${Date.now()}`, text, done: false }],
+      homework: [
+        ...event.homework,
+        { id: `hw-${Date.now()}`, text, done: false },
+      ],
     });
     setHomeworkText("");
   }
@@ -80,6 +127,10 @@ export default function EventModal({
     });
     setCommentText("");
   }
+
+  const availableToAdd = SECTION_OPTIONS.filter(
+    (opt) => !activeSections.has(opt.key)
+  );
 
   return (
     <div
@@ -123,126 +174,188 @@ export default function EventModal({
           </button>
         </div>
 
-        {/* 픽업 담당자 */}
-        <section className="mb-5">
-          <h3 className="mb-2 text-sm font-semibold text-foreground">
-            🚗 픽업 담당자
-          </h3>
-          <div className="mb-2 flex flex-wrap gap-2">
-            {members.map((m) => {
-              const isSelected = event.pickupPersonId === m.id;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => onChange({ ...event, pickupPersonId: m.id })}
-                  className={`rounded-full px-3 py-1 text-sm font-medium transition ${
-                    MEMBER_COLOR_CLASSES[m.color].chip
-                  } ${
-                    isSelected
-                      ? `ring-2 ${MEMBER_COLOR_CLASSES[m.color].ring}`
-                      : "opacity-50"
-                  }`}
-                >
-                  {m.name}
-                </button>
-              );
-            })}
-          </div>
-          {pickupPerson && (
+        {/* 픽업 */}
+        {activeSections.has("pickup") && (
+          <section className="mb-5">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">
+                🚗 픽업
+              </h3>
+              <button
+                onClick={() => removeSection("pickup")}
+                className="text-xs text-muted hover:text-peach-dark"
+              >
+                제거
+              </button>
+            </div>
+            <div className="mb-2 flex flex-wrap gap-2">
+              {members.map((m) => {
+                const isSelected = event.pickupPersonId === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => onChange({ ...event, pickupPersonId: m.id })}
+                    className={`rounded-full px-3 py-1 text-sm font-medium transition ${
+                      MEMBER_COLOR_CLASSES[m.color].chip
+                    } ${
+                      isSelected
+                        ? `ring-2 ${MEMBER_COLOR_CLASSES[m.color].ring}`
+                        : "opacity-50"
+                    }`}
+                  >
+                    {m.name}
+                  </button>
+                );
+              })}
+            </div>
+            {pickupPerson && (
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={event.pickupChecked}
+                  onChange={(e) =>
+                    onChange({ ...event, pickupChecked: e.target.checked })
+                  }
+                  className="h-4 w-4 accent-mint-dark"
+                />
+                {pickupPerson.name}가 픽업 완료했어요
+              </label>
+            )}
+          </section>
+        )}
+
+        {/* 식사 */}
+        {activeSections.has("meal") && (
+          <section className="mb-5">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">
+                🍚 식사
+              </h3>
+              <button
+                onClick={() => removeSection("meal")}
+                className="text-xs text-muted hover:text-peach-dark"
+              >
+                제거
+              </button>
+            </div>
+            <input
+              type="text"
+              value={mealMemoDraft}
+              onChange={(e) => setMealMemoDraft(e.target.value)}
+              onBlur={() => onChange({ ...event, mealMemo: mealMemoDraft })}
+              placeholder="예: 저녁은 김치찌개"
+              className="mb-2 w-full rounded-xl border border-black/10 bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-mint-dark"
+            />
             <label className="flex items-center gap-2 text-sm text-foreground">
               <input
                 type="checkbox"
-                checked={event.pickupChecked}
+                checked={event.mealChecked}
                 onChange={(e) =>
-                  onChange({ ...event, pickupChecked: e.target.checked })
+                  onChange({ ...event, mealChecked: e.target.checked })
                 }
-                className="h-4 w-4 accent-mint-dark"
+                className="h-4 w-4 accent-peach-dark"
               />
-              {pickupPerson.name}가 픽업 완료했어요
+              식사 완료
             </label>
-          )}
-        </section>
+          </section>
+        )}
 
-        {/* 식사 메모 */}
-        <section className="mb-5">
-          <h3 className="mb-2 text-sm font-semibold text-foreground">
-            🍚 식사 메모
-          </h3>
-          <input
-            type="text"
-            value={mealMemoDraft}
-            onChange={(e) => setMealMemoDraft(e.target.value)}
-            onBlur={() => onChange({ ...event, mealMemo: mealMemoDraft })}
-            placeholder="예: 저녁은 김치찌개"
-            className="mb-2 w-full rounded-xl border border-black/10 bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-mint-dark"
-          />
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            <input
-              type="checkbox"
-              checked={event.mealChecked}
-              onChange={(e) =>
-                onChange({ ...event, mealChecked: e.target.checked })
-              }
-              className="h-4 w-4 accent-peach-dark"
-            />
-            식사 완료
-          </label>
-        </section>
+        {/* 숙제 */}
+        {activeSections.has("homework") && (
+          <section className="mb-5">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">
+                📚 숙제
+              </h3>
+              <button
+                onClick={() => removeSection("homework")}
+                className="text-xs text-muted hover:text-peach-dark"
+              >
+                제거
+              </button>
+            </div>
+            {event.homework.length === 0 && (
+              <p className="mb-2 text-sm text-muted">등록된 숙제가 없어요.</p>
+            )}
+            <ul className="mb-2 space-y-1">
+              {event.homework.map((h) => (
+                <li key={h.id} className="flex items-center gap-2">
+                  <label className="flex flex-1 items-center gap-2 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={h.done}
+                      onChange={(e) => updateHomework(h.id, e.target.checked)}
+                      className="h-4 w-4 accent-lavender-dark"
+                    />
+                    <span className={h.done ? "line-through text-muted" : ""}>
+                      {h.text}
+                    </span>
+                  </label>
+                  <button
+                    onClick={() => removeHomework(h.id)}
+                    className="text-xs text-muted hover:text-peach-dark"
+                    aria-label="숙제 삭제"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={homeworkText}
+                onChange={(e) => setHomeworkText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addHomework()}
+                placeholder="숙제를 추가해보세요"
+                className="flex-1 rounded-xl border border-black/10 bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-mint-dark"
+              />
+              <button
+                onClick={addHomework}
+                className="rounded-xl bg-lavender px-4 py-2 text-sm font-medium text-[#4b3576] hover:bg-lavender-dark"
+              >
+                추가
+              </button>
+            </div>
+          </section>
+        )}
 
-        {/* 숙제 체크리스트 */}
-        <section className="mb-5">
-          <h3 className="mb-2 text-sm font-semibold text-foreground">
-            📚 숙제 체크리스트
-          </h3>
-          {event.homework.length === 0 && (
-            <p className="text-sm text-muted">등록된 숙제가 없어요.</p>
-          )}
-          <ul className="mb-2 space-y-1">
-            {event.homework.map((h) => (
-              <li key={h.id} className="flex items-center gap-2">
-                <label className="flex flex-1 items-center gap-2 text-sm text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={h.done}
-                    onChange={(e) => updateHomework(h.id, e.target.checked)}
-                    className="h-4 w-4 accent-lavender-dark"
-                  />
-                  <span className={h.done ? "line-through text-muted" : ""}>
-                    {h.text}
-                  </span>
-                </label>
+        {/* 항목 추가 */}
+        {availableToAdd.length > 0 && (
+          <div className="mb-5">
+            {!showAddMenu ? (
+              <button
+                onClick={() => setShowAddMenu(true)}
+                className="w-full rounded-xl border border-dashed border-black/15 py-2 text-sm font-medium text-muted hover:border-mint-dark hover:text-mint-dark"
+              >
+                + 항목 추가
+              </button>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {availableToAdd.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => addSection(opt.key)}
+                    className="rounded-xl border border-black/10 bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-black/5"
+                  >
+                    {opt.emoji} {opt.label}
+                  </button>
+                ))}
                 <button
-                  onClick={() => removeHomework(h.id)}
-                  className="text-xs text-muted hover:text-peach-dark"
-                  aria-label="숙제 삭제"
+                  onClick={() => setShowAddMenu(false)}
+                  className="rounded-xl px-3 py-2 text-sm text-muted hover:bg-black/5"
                 >
-                  ✕
+                  취소
                 </button>
-              </li>
-            ))}
-          </ul>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={homeworkText}
-              onChange={(e) => setHomeworkText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addHomework()}
-              placeholder="숙제를 추가해보세요"
-              className="flex-1 rounded-xl border border-black/10 bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-mint-dark"
-            />
-            <button
-              onClick={addHomework}
-              className="rounded-xl bg-lavender px-4 py-2 text-sm font-medium text-[#4b3576] hover:bg-lavender-dark"
-            >
-              추가
-            </button>
+              </div>
+            )}
           </div>
-        </section>
+        )}
 
         {/* 댓글 */}
         <section>
           <h3 className="mb-2 text-sm font-semibold text-foreground">
-            💬 소통 댓글
+            💬 댓글
           </h3>
           <ul className="mb-3 space-y-2">
             {event.comments.map((c) => (
