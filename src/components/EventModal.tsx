@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { josa } from "@/lib/korean";
 import type { CalendarEvent, FamilyMember } from "@/lib/types";
 import { MEMBER_COLOR_CLASSES } from "@/lib/types";
 
@@ -218,7 +219,8 @@ export default function EventModal({
                   }
                   className="h-4 w-4 accent-mint-dark"
                 />
-                {pickupPerson.name}가 픽업 완료했어요
+                {pickupPerson.name}
+                {josa(pickupPerson.name, "이", "가")} 픽업 완료했어요
               </label>
             )}
           </section>
