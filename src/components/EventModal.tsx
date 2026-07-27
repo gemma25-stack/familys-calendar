@@ -10,6 +10,7 @@ type Props = {
   currentMemberId: string;
   onClose: () => void;
   onChange: (updated: CalendarEvent) => void;
+  onDelete: () => void;
 };
 
 export default function EventModal({
@@ -18,8 +19,10 @@ export default function EventModal({
   currentMemberId,
   onClose,
   onChange,
+  onDelete,
 }: Props) {
   const [commentText, setCommentText] = useState("");
+  const [homeworkText, setHomeworkText] = useState("");
 
   const pickupPerson = members.find((m) => m.id === event.pickupPersonId);
 
@@ -27,6 +30,23 @@ export default function EventModal({
     onChange({
       ...event,
       homework: event.homework.map((h) => (h.id === id ? { ...h, done } : h)),
+    });
+  }
+
+  function addHomework() {
+    const text = homeworkText.trim();
+    if (!text) return;
+    onChange({
+      ...event,
+      homework: [...event.homework, { id: `hw-${Date.now()}`, text, done: false }],
+    });
+    setHomeworkText("");
+  }
+
+  function removeHomework(id: string) {
+    onChange({
+      ...event,
+      homework: event.homework.filter((h) => h.id !== id),
     });
   }
 
@@ -59,15 +79,26 @@ export default function EventModal({
         className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl bg-card p-6 shadow-xl ring-1 ring-black/5"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-foreground">
-              {event.title}
-            </h2>
-            <p className="text-sm text-muted">
-              {event.date}
-              {event.startTime ? ` · ${event.startTime}` : ""}
-            </p>
+        <div className="mb-4 flex items-start justify-between gap-2">
+          <div className="flex-1">
+            <input
+              type="text"
+              value={event.title}
+              onChange={(e) => onChange({ ...event, title: e.target.value })}
+              placeholder="일정 제목"
+              className="w-full rounded-lg px-1 -mx-1 text-xl font-bold text-foreground outline-none focus:bg-background"
+            />
+            <div className="mt-1 flex items-center gap-2 px-1 text-sm text-muted">
+              <span>{event.date}</span>
+              <input
+                type="time"
+                value={event.startTime ?? ""}
+                onChange={(e) =>
+                  onChange({ ...event, startTime: e.target.value })
+                }
+                className="rounded-md bg-background px-1 py-0.5 text-sm text-foreground outline-none"
+              />
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -151,10 +182,10 @@ export default function EventModal({
           {event.homework.length === 0 && (
             <p className="text-sm text-muted">등록된 숙제가 없어요.</p>
           )}
-          <ul className="space-y-1">
+          <ul className="mb-2 space-y-1">
             {event.homework.map((h) => (
-              <li key={h.id}>
-                <label className="flex items-center gap-2 text-sm text-foreground">
+              <li key={h.id} className="flex items-center gap-2">
+                <label className="flex flex-1 items-center gap-2 text-sm text-foreground">
                   <input
                     type="checkbox"
                     checked={h.done}
@@ -165,9 +196,32 @@ export default function EventModal({
                     {h.text}
                   </span>
                 </label>
+                <button
+                  onClick={() => removeHomework(h.id)}
+                  className="text-xs text-muted hover:text-peach-dark"
+                  aria-label="숙제 삭제"
+                >
+                  ✕
+                </button>
               </li>
             ))}
           </ul>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={homeworkText}
+              onChange={(e) => setHomeworkText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addHomework()}
+              placeholder="숙제를 추가해보세요"
+              className="flex-1 rounded-xl border border-black/10 bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-mint-dark"
+            />
+            <button
+              onClick={addHomework}
+              className="rounded-xl bg-lavender px-4 py-2 text-sm font-medium text-[#4b3576] hover:bg-lavender-dark"
+            >
+              추가
+            </button>
+          </div>
         </section>
 
         {/* 댓글 */}
@@ -205,6 +259,17 @@ export default function EventModal({
             </button>
           </div>
         </section>
+
+        <div className="mt-6 border-t border-black/5 pt-4 text-center">
+          <button
+            onClick={() => {
+              if (confirm("이 일정을 삭제할까요?")) onDelete();
+            }}
+            className="text-sm font-medium text-muted hover:text-peach-dark"
+          >
+            일정 삭제
+          </button>
+        </div>
       </div>
     </div>
   );

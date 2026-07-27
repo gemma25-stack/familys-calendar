@@ -23,12 +23,14 @@ type Props = {
   events: CalendarEvent[];
   members: FamilyMember[];
   onSelectEvent: (event: CalendarEvent) => void;
+  onAddEvent: (dateKey: string) => void;
 };
 
 export default function CalendarView({
   events,
   members,
   onSelectEvent,
+  onAddEvent,
 }: Props) {
   const [mode, setMode] = useState<"month" | "week">("month");
   const [anchor, setAnchor] = useState(new Date());
@@ -135,13 +137,22 @@ export default function CalendarView({
                   : "bg-background"
               } ${outOfMonth ? "opacity-35" : ""}`}
             >
-              <span
-                className={`text-xs font-semibold sm:text-sm ${
-                  today ? "text-peach-dark" : "text-foreground"
-                }`}
-              >
-                {format(day, "d")}
-              </span>
+              <div className="flex items-center justify-between">
+                <span
+                  className={`text-xs font-semibold sm:text-sm ${
+                    today ? "text-peach-dark" : "text-foreground"
+                  }`}
+                >
+                  {format(day, "d")}
+                </span>
+                <button
+                  onClick={() => onAddEvent(key)}
+                  className="rounded-full px-1 text-xs text-muted opacity-60 hover:bg-black/5 hover:opacity-100"
+                  aria-label="일정 추가"
+                >
+                  +
+                </button>
+              </div>
               <div className="flex flex-1 flex-col gap-1 overflow-hidden">
                 {dayEvents.slice(0, 3).map((evt) => {
                   const person = memberFor(evt.pickupPersonId);
