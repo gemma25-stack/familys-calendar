@@ -13,7 +13,7 @@ export default function LoginScreen() {
           우리 가족 캘린더
         </h1>
         <p className="mb-8 text-sm text-muted">
-          가족과 함께 보는 일정, 픽업, 숙제를 한곳에서 챙겨보세요.
+          우리 가족의 일정을 함께 공유해요
         </p>
         <button
           onClick={() => signInWithGoogle()}

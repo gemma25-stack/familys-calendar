@@ -46,13 +46,13 @@ export default function FamilySetup() {
                 onClick={() => setMode("create")}
                 className="rounded-xl bg-mint px-4 py-3 text-sm font-semibold text-[#2f5747] hover:bg-mint-dark"
               >
-                새 가족 만들기
+                새로운 가족 일정 만들기
               </button>
               <button
                 onClick={() => setMode("join")}
                 className="rounded-xl bg-lavender px-4 py-3 text-sm font-semibold text-[#4b3576] hover:bg-lavender-dark"
               >
-                초대 코드로 참여하기
+                가족 일정에 참여하기
               </button>
             </div>
           </div>

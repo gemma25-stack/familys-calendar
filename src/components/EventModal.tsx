@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CalendarEvent, FamilyMember } from "@/lib/types";
 import { MEMBER_COLOR_CLASSES } from "@/lib/types";
 
@@ -23,6 +23,17 @@ export default function EventModal({
 }: Props) {
   const [commentText, setCommentText] = useState("");
   const [homeworkText, setHomeworkText] = useState("");
+
+  const [titleDraft, setTitleDraft] = useState(event.title);
+  const [startTimeDraft, setStartTimeDraft] = useState(event.startTime ?? "");
+  const [mealMemoDraft, setMealMemoDraft] = useState(event.mealMemo);
+
+  useEffect(() => {
+    setTitleDraft(event.title);
+    setStartTimeDraft(event.startTime ?? "");
+    setMealMemoDraft(event.mealMemo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event.id]);
 
   const pickupPerson = members.find((m) => m.id === event.pickupPersonId);
 
@@ -81,21 +92,24 @@ export default function EventModal({
       >
         <div className="mb-4 flex items-start justify-between gap-2">
           <div className="flex-1">
+            <label className="px-1 text-xs font-medium text-muted">
+              일정 이름
+            </label>
             <input
               type="text"
-              value={event.title}
-              onChange={(e) => onChange({ ...event, title: e.target.value })}
-              placeholder="일정 제목"
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={() => onChange({ ...event, title: titleDraft })}
+              placeholder="예: 태권도 학원 픽업"
               className="w-full rounded-lg px-1 -mx-1 text-xl font-bold text-foreground outline-none focus:bg-background"
             />
             <div className="mt-1 flex items-center gap-2 px-1 text-sm text-muted">
               <span>{event.date}</span>
               <input
                 type="time"
-                value={event.startTime ?? ""}
-                onChange={(e) =>
-                  onChange({ ...event, startTime: e.target.value })
-                }
+                value={startTimeDraft}
+                onChange={(e) => setStartTimeDraft(e.target.value)}
+                onBlur={() => onChange({ ...event, startTime: startTimeDraft })}
                 className="rounded-md bg-background px-1 py-0.5 text-sm text-foreground outline-none"
               />
             </div>
@@ -156,8 +170,9 @@ export default function EventModal({
           </h3>
           <input
             type="text"
-            value={event.mealMemo}
-            onChange={(e) => onChange({ ...event, mealMemo: e.target.value })}
+            value={mealMemoDraft}
+            onChange={(e) => setMealMemoDraft(e.target.value)}
+            onBlur={() => onChange({ ...event, mealMemo: mealMemoDraft })}
             placeholder="예: 저녁은 김치찌개"
             className="mb-2 w-full rounded-xl border border-black/10 bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-mint-dark"
           />

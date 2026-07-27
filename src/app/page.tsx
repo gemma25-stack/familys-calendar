@@ -14,7 +14,7 @@ function emptyEvent(id: string, date: string): CalendarEvent {
   return {
     id,
     date,
-    title: "새 일정",
+    title: "",
     pickupPersonId: null,
     pickupChecked: false,
     mealMemo: "",
