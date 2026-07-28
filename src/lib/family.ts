@@ -1,14 +1,7 @@
-import type { FamilyMember } from "./types";
+import { MEMBER_COLOR_ORDER, type MemberColor } from "./types";
 
-const COLOR_ORDER: FamilyMember["color"][] = [
-  "mint",
-  "peach",
-  "lavender",
-  "sky",
-];
-
-export function nextMemberColor(usedCount: number): FamilyMember["color"] {
-  return COLOR_ORDER[usedCount % COLOR_ORDER.length];
+export function nextMemberColor(usedCount: number): MemberColor {
+  return MEMBER_COLOR_ORDER[usedCount % MEMBER_COLOR_ORDER.length];
 }
 
 export function generateInviteCode(): string {

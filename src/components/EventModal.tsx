@@ -12,6 +12,7 @@ type Props = {
   onClose: () => void;
   onChange: (updated: CalendarEvent) => void;
   onDelete: () => void;
+  onRepeat: (weeks: number) => void;
 };
 
 type SectionKey = "pickup" | "meal" | "homework";
@@ -37,9 +38,11 @@ export default function EventModal({
   onClose,
   onChange,
   onDelete,
+  onRepeat,
 }: Props) {
   const [commentText, setCommentText] = useState("");
   const [homeworkText, setHomeworkText] = useState("");
+  const [repeatApplied, setRepeatApplied] = useState(false);
 
   const [titleDraft, setTitleDraft] = useState(event.title);
   const [startTimeDraft, setStartTimeDraft] = useState(event.startTime ?? "");
@@ -58,6 +61,7 @@ export default function EventModal({
     setPickupMemoDraft(event.pickupMemo);
     setActiveSections(computeActiveSections(event));
     setShowAddMenu(false);
+    setRepeatApplied(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event.id]);
 
@@ -172,6 +176,28 @@ export default function EventModal({
                 onBlur={() => onChange({ ...event, startTime: startTimeDraft })}
                 className="rounded-md bg-background px-1 py-0.5 text-sm text-foreground outline-none"
               />
+            </div>
+            <div className="mt-1 flex items-center gap-2 px-1">
+              <label className="text-xs text-muted">🔁 반복</label>
+              <select
+                value={repeatApplied ? "weekly" : "none"}
+                onChange={(e) => {
+                  if (e.target.value === "weekly" && !repeatApplied) {
+                    setRepeatApplied(true);
+                    onRepeat(8);
+                  }
+                }}
+                disabled={repeatApplied}
+                className="rounded-md bg-background px-1 py-0.5 text-xs text-foreground outline-none disabled:opacity-60"
+              >
+                <option value="none">반복 안 함</option>
+                <option value="weekly">매주 반복 (8주)</option>
+              </select>
+              {repeatApplied && (
+                <span className="text-xs text-mint-dark">
+                  8주 일정이 생성됐어요
+                </span>
+              )}
             </div>
           </div>
           <button

@@ -6,9 +6,18 @@ import EventModal from "@/components/EventModal";
 import FamilySetup from "@/components/FamilySetup";
 import LoginScreen from "@/components/LoginScreen";
 import { useAuth } from "@/context/AuthContext";
-import { useFamily } from "@/context/FamilyContext";
+import { useFamily, type FontChoice } from "@/context/FamilyContext";
 import { useFamilyEvents } from "@/hooks/useFamilyEvents";
+import { toDateKey } from "@/lib/date";
+import { MEMBER_COLOR_CLASSES, MEMBER_COLOR_ORDER } from "@/lib/types";
 import type { CalendarEvent } from "@/lib/types";
+
+const FONT_OPTIONS: { key: FontChoice; label: string; className: string }[] = [
+  { key: "default", label: "기본", className: "font-choice-default" },
+  { key: "gowun", label: "둥근고딕", className: "font-choice-gowun" },
+  { key: "gaegu", label: "손글씨", className: "font-choice-gaegu" },
+  { key: "nanum", label: "나눔고딕", className: "font-choice-nanum" },
+];
 
 function emptyEvent(id: string, date: string): CalendarEvent {
   return {
@@ -29,8 +38,15 @@ const DEFAULT_DESCRIPTION = "함께 보는 일정, 함께 챙기는 픽업과 �
 
 export default function Home() {
   const { user, profile, loading: authLoading, signOutUser } = useAuth();
-  const { family, members, loading: familyLoading, updateDescription } =
-    useFamily();
+  const {
+    family,
+    members,
+    loading: familyLoading,
+    updateDescription,
+    updateNotice,
+    updateFontChoice,
+    updateMemberColor,
+  } = useFamily();
   const { events, saveEvent, removeEvent, newDraftId } = useFamilyEvents(
     family?.id ?? null
   );
@@ -39,6 +55,7 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
 
   if (authLoading) {
     return (
@@ -74,6 +91,27 @@ export default function Home() {
     setSelectedId(null);
   }
 
+  async function handleRepeat(base: CalendarEvent, weeks: number) {
+    const recurrenceId = base.recurrenceId ?? base.id;
+    await saveEvent({ ...base, recurrenceId });
+    const baseDate = new Date(`${base.date}T00:00:00`);
+    for (let i = 1; i < weeks; i++) {
+      const id = newDraftId();
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() + 7 * i);
+      await saveEvent({
+        ...base,
+        id,
+        date: toDateKey(d),
+        recurrenceId,
+        pickupChecked: false,
+        mealChecked: false,
+        homework: base.homework.map((h) => ({ ...h, done: false })),
+        comments: [],
+      });
+    }
+  }
+
   function copyInviteCode() {
     if (!family) return;
     navigator.clipboard.writeText(family.inviteCode);
@@ -81,8 +119,15 @@ export default function Home() {
     setTimeout(() => setCopied(false), 1500);
   }
 
+  const myColor = members.find((m) => m.id === user.uid)?.color;
+  const fontClassName =
+    FONT_OPTIONS.find((f) => f.key === (family.fontChoice ?? "default"))
+      ?.className ?? "font-choice-default";
+
   return (
-    <div className="flex flex-1 flex-col items-center bg-background px-4 py-8 sm:py-12">
+    <div
+      className={`flex flex-1 flex-col items-center bg-background px-4 py-8 sm:py-12 ${fontClassName}`}
+    >
       <div className="w-full max-w-2xl">
         <header className="mb-6 flex items-center justify-between">
           <div>
@@ -121,6 +166,13 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowSettings((v) => !v)}
+              className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-medium text-muted hover:bg-black/5"
+              aria-label="설정"
+            >
+              ⚙️
+            </button>
+            <button
               onClick={() => setShowInvite((v) => !v)}
               className="rounded-full bg-lavender px-3 py-1.5 text-xs font-medium text-[#4b3576] hover:bg-lavender-dark"
             >
@@ -134,6 +186,46 @@ export default function Home() {
             </button>
           </div>
         </header>
+
+        {showSettings && (
+          <div className="mb-4 rounded-2xl bg-card p-4 shadow-sm ring-1 ring-black/5">
+            <h3 className="mb-2 text-sm font-semibold text-foreground">
+              글꼴
+            </h3>
+            <div className="mb-4 flex flex-wrap gap-2">
+              {FONT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => updateFontChoice(opt.key)}
+                  className={`rounded-full border px-3 py-1.5 text-sm ${opt.className} ${
+                    (family.fontChoice ?? "default") === opt.key
+                      ? "border-mint-dark bg-mint/30 text-foreground"
+                      : "border-black/10 text-muted hover:bg-black/5"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <h3 className="mb-2 text-sm font-semibold text-foreground">
+              내 색상
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {MEMBER_COLOR_ORDER.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => updateMemberColor(color)}
+                  aria-label={color}
+                  className={`h-8 w-8 rounded-full ${MEMBER_COLOR_CLASSES[color].swatch} ${
+                    myColor === color
+                      ? `ring-2 ring-offset-2 ${MEMBER_COLOR_CLASSES[color].ring}`
+                      : ""
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {showInvite && (
           <div className="mb-4 rounded-2xl bg-card p-4 text-center shadow-sm ring-1 ring-black/5">
@@ -157,6 +249,8 @@ export default function Home() {
           members={members}
           onSelectEvent={(evt) => setSelectedId(evt.id)}
           onAddEvent={handleAddEvent}
+          notice={family.notice ?? ""}
+          onNoticeChange={updateNotice}
         />
       </div>
 
@@ -168,6 +262,7 @@ export default function Home() {
           onClose={() => setSelectedId(null)}
           onChange={(updated) => saveEvent(updated)}
           onDelete={handleDelete}
+          onRepeat={(weeks) => handleRepeat(selectedEvent, weeks)}
         />
       )}
     </div>

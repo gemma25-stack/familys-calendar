@@ -10,6 +10,12 @@
   --color-peach-dark: #f0a868;
   --color-lavender: #cdbdea;
   --color-lavender-dark: #ab8fd8;
+  --color-rose: #f3b8c8;
+  --color-rose-dark: #e589a5;
+  --color-lemon: #f2e29a;
+  --color-lemon-dark: #ddc457;
+  --color-grape: #c9a8e0;
+  --color-grape-dark: #a679c9;
   --color-card: #ffffff;
   --color-muted: #8a7c6f;
 }
@@ -23,6 +29,12 @@
   --color-peach-dark: var(--color-peach-dark);
   --color-lavender: var(--color-lavender);
   --color-lavender-dark: var(--color-lavender-dark);
+  --color-rose: var(--color-rose);
+  --color-rose-dark: var(--color-rose-dark);
+  --color-lemon: var(--color-lemon);
+  --color-lemon-dark: var(--color-lemon-dark);
+  --color-grape: var(--color-grape);
+  --color-grape-dark: var(--color-grape-dark);
   --color-card: var(--color-card);
   --color-muted: var(--color-muted);
   --font-sans: var(--font-geist-sans);
@@ -42,4 +54,17 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+.font-choice-default {
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+.font-choice-gowun {
+  font-family: var(--font-gowun), sans-serif;
+}
+.font-choice-gaegu {
+  font-family: var(--font-gaegu), sans-serif;
+}
+.font-choice-nanum {
+  font-family: var(--font-nanum), sans-serif;
 }

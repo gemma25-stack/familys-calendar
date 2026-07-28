@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CalendarEvent, FamilyMember } from "@/lib/types";
 import { MEMBER_COLOR_CLASSES } from "@/lib/types";
 import {
@@ -24,6 +24,8 @@ type Props = {
   members: FamilyMember[];
   onSelectEvent: (event: CalendarEvent) => void;
   onAddEvent: (dateKey: string) => void;
+  notice: string;
+  onNoticeChange: (notice: string) => void;
 };
 
 export default function CalendarView({
@@ -31,9 +33,18 @@ export default function CalendarView({
   members,
   onSelectEvent,
   onAddEvent,
+  notice,
+  onNoticeChange,
 }: Props) {
   const [mode, setMode] = useState<"month" | "week">("month");
   const [anchor, setAnchor] = useState(new Date());
+  const [editingNotice, setEditingNotice] = useState(false);
+  const [noticeDraft, setNoticeDraft] = useState(notice);
+
+  useEffect(() => {
+    if (!editingNotice) setNoticeDraft(notice);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notice]);
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
@@ -128,10 +139,15 @@ export default function CalendarView({
           const outOfMonth = mode === "month" && !isSameMonth(day, anchor);
           const today = isToday(day);
 
+          const heightClass =
+            mode === "week"
+              ? "min-h-[192px] sm:min-h-[264px]"
+              : "min-h-[64px] sm:min-h-[88px]";
+
           return (
             <div
               key={key}
-              className={`flex min-h-[64px] flex-col gap-1 rounded-xl p-1 sm:min-h-[88px] sm:p-2 ${
+              className={`flex ${heightClass} flex-col gap-1 rounded-xl p-1 sm:p-2 ${
                 today
                   ? "bg-peach/40 ring-2 ring-peach-dark"
                   : "bg-background"
@@ -154,7 +170,7 @@ export default function CalendarView({
                 </button>
               </div>
               <div className="flex flex-1 flex-col gap-1 overflow-hidden">
-                {dayEvents.slice(0, 3).map((evt) => {
+                {dayEvents.slice(0, mode === "week" ? 10 : 3).map((evt) => {
                   const person = memberFor(evt.pickupPersonId);
                   return (
                     <button
@@ -176,6 +192,41 @@ export default function CalendarView({
           );
         })}
       </div>
+
+      {mode === "week" && (
+        <div className="mt-3 rounded-xl bg-peach/30 px-4 py-3">
+          {editingNotice ? (
+            <input
+              type="text"
+              autoFocus
+              value={noticeDraft}
+              onChange={(e) => setNoticeDraft(e.target.value)}
+              onBlur={() => {
+                setEditingNotice(false);
+                onNoticeChange(noticeDraft);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+              placeholder="이번 주 공지사항을 입력해보세요"
+              className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
+            />
+          ) : (
+            <button
+              onClick={() => setEditingNotice(true)}
+              className="group flex w-full items-center gap-2 text-left text-sm text-foreground"
+            >
+              <span aria-hidden="true">📌</span>
+              <span className="flex-1">
+                {notice || "이번 주 공지사항을 입력해보세요"}
+              </span>
+              <span className="opacity-0 transition group-hover:opacity-100">
+                ✏️
+              </span>
+            </button>
+          )}
+        </div>
+      )}
     </section>
   );
 }

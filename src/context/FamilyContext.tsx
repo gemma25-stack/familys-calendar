@@ -21,16 +21,20 @@ import {
 } from "react";
 import { db } from "@/lib/firebase";
 import { generateInviteCode, nextMemberColor } from "@/lib/family";
-import type { FamilyMember } from "@/lib/types";
+import type { FamilyMember, MemberColor } from "@/lib/types";
 import { useAuth } from "./AuthContext";
+
+export type FontChoice = "default" | "gowun" | "gaegu" | "nanum";
 
 type FamilyDoc = {
   id: string;
   name: string;
   description?: string;
+  notice?: string;
+  fontChoice?: FontChoice;
   inviteCode: string;
   memberIds: string[];
-  members: Record<string, { name: string; color: FamilyMember["color"] }>;
+  members: Record<string, { name: string; color: MemberColor }>;
 };
 
 type FamilyContextValue = {
@@ -40,6 +44,9 @@ type FamilyContextValue = {
   createFamily: (name: string) => Promise<void>;
   joinFamily: (inviteCode: string) => Promise<"ok" | "not_found">;
   updateDescription: (description: string) => Promise<void>;
+  updateNotice: (notice: string) => Promise<void>;
+  updateFontChoice: (fontChoice: FontChoice) => Promise<void>;
+  updateMemberColor: (color: MemberColor) => Promise<void>;
 };
 
 const FamilyContext = createContext<FamilyContextValue | null>(null);
@@ -111,6 +118,23 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     await updateDoc(doc(db, "families", family.id), { description });
   }
 
+  async function updateNotice(notice: string) {
+    if (!family) return;
+    await updateDoc(doc(db, "families", family.id), { notice });
+  }
+
+  async function updateFontChoice(fontChoice: FontChoice) {
+    if (!family) return;
+    await updateDoc(doc(db, "families", family.id), { fontChoice });
+  }
+
+  async function updateMemberColor(color: MemberColor) {
+    if (!family || !user) return;
+    await updateDoc(doc(db, "families", family.id), {
+      [`members.${user.uid}.color`]: color,
+    });
+  }
+
   const members: FamilyMember[] = family
     ? Object.entries(family.members).map(([id, m]) => ({
         id,
@@ -128,6 +152,9 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         createFamily,
         joinFamily,
         updateDescription,
+        updateNotice,
+        updateFontChoice,
+        updateMemberColor,
       }}
     >
       {children}
