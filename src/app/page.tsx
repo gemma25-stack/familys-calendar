@@ -17,6 +17,7 @@ function emptyEvent(id: string, date: string): CalendarEvent {
     title: "",
     pickupPersonId: null,
     pickupChecked: false,
+    pickupMemo: "",
     mealMemo: "",
     mealChecked: false,
     homework: [],
@@ -24,15 +25,20 @@ function emptyEvent(id: string, date: string): CalendarEvent {
   };
 }
 
+const DEFAULT_DESCRIPTION = "함께 보는 일정, 함께 챙기는 픽업과 숙제";
+
 export default function Home() {
   const { user, profile, loading: authLoading, signOutUser } = useAuth();
-  const { family, members, loading: familyLoading } = useFamily();
+  const { family, members, loading: familyLoading, updateDescription } =
+    useFamily();
   const { events, saveEvent, removeEvent, newDraftId } = useFamilyEvents(
     family?.id ?? null
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState("");
 
   if (authLoading) {
     return (
@@ -83,9 +89,35 @@ export default function Home() {
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               {family.name} 🗓️
             </h1>
-            <p className="mt-1 text-sm text-muted">
-              함께 보는 일정, 함께 챙기는 픽업과 숙제
-            </p>
+            {editingDescription ? (
+              <input
+                type="text"
+                autoFocus
+                value={descriptionDraft}
+                onChange={(e) => setDescriptionDraft(e.target.value)}
+                onBlur={() => {
+                  setEditingDescription(false);
+                  updateDescription(descriptionDraft);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                }}
+                className="mt-1 w-full max-w-xs rounded-md bg-background px-1 py-0.5 text-sm text-foreground outline-none"
+              />
+            ) : (
+              <button
+                onClick={() => {
+                  setDescriptionDraft(family.description ?? DEFAULT_DESCRIPTION);
+                  setEditingDescription(true);
+                }}
+                className="group mt-1 flex items-center gap-1 text-left text-sm text-muted"
+              >
+                {family.description ?? DEFAULT_DESCRIPTION}
+                <span className="opacity-0 transition group-hover:opacity-100">
+                  ✏️
+                </span>
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button

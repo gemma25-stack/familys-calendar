@@ -27,6 +27,7 @@ import { useAuth } from "./AuthContext";
 type FamilyDoc = {
   id: string;
   name: string;
+  description?: string;
   inviteCode: string;
   memberIds: string[];
   members: Record<string, { name: string; color: FamilyMember["color"] }>;
@@ -38,6 +39,7 @@ type FamilyContextValue = {
   loading: boolean;
   createFamily: (name: string) => Promise<void>;
   joinFamily: (inviteCode: string) => Promise<"ok" | "not_found">;
+  updateDescription: (description: string) => Promise<void>;
 };
 
 const FamilyContext = createContext<FamilyContextValue | null>(null);
@@ -104,6 +106,11 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     return "ok";
   }
 
+  async function updateDescription(description: string) {
+    if (!family) return;
+    await updateDoc(doc(db, "families", family.id), { description });
+  }
+
   const members: FamilyMember[] = family
     ? Object.entries(family.members).map(([id, m]) => ({
         id,
@@ -114,7 +121,14 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
 
   return (
     <FamilyContext.Provider
-      value={{ family, members, loading, createFamily, joinFamily }}
+      value={{
+        family,
+        members,
+        loading,
+        createFamily,
+        joinFamily,
+        updateDescription,
+      }}
     >
       {children}
     </FamilyContext.Provider>

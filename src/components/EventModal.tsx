@@ -24,7 +24,7 @@ const SECTION_OPTIONS: { key: SectionKey; label: string; emoji: string }[] = [
 
 function computeActiveSections(event: CalendarEvent): Set<SectionKey> {
   const s = new Set<SectionKey>();
-  if (event.pickupPersonId) s.add("pickup");
+  if (event.pickupPersonId || event.pickupMemo) s.add("pickup");
   if (event.mealMemo || event.mealChecked) s.add("meal");
   if (event.homework.length > 0) s.add("homework");
   return s;
@@ -44,6 +44,7 @@ export default function EventModal({
   const [titleDraft, setTitleDraft] = useState(event.title);
   const [startTimeDraft, setStartTimeDraft] = useState(event.startTime ?? "");
   const [mealMemoDraft, setMealMemoDraft] = useState(event.mealMemo);
+  const [pickupMemoDraft, setPickupMemoDraft] = useState(event.pickupMemo);
 
   const [activeSections, setActiveSections] = useState<Set<SectionKey>>(() =>
     computeActiveSections(event)
@@ -54,6 +55,7 @@ export default function EventModal({
     setTitleDraft(event.title);
     setStartTimeDraft(event.startTime ?? "");
     setMealMemoDraft(event.mealMemo);
+    setPickupMemoDraft(event.pickupMemo);
     setActiveSections(computeActiveSections(event));
     setShowAddMenu(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,7 +75,13 @@ export default function EventModal({
       return next;
     });
     if (key === "pickup") {
-      onChange({ ...event, pickupPersonId: null, pickupChecked: false });
+      setPickupMemoDraft("");
+      onChange({
+        ...event,
+        pickupPersonId: null,
+        pickupChecked: false,
+        pickupMemo: "",
+      });
     } else if (key === "meal") {
       setMealMemoDraft("");
       onChange({ ...event, mealMemo: "", mealChecked: false });
@@ -209,6 +217,16 @@ export default function EventModal({
                 );
               })}
             </div>
+            <input
+              type="text"
+              value={pickupMemoDraft}
+              onChange={(e) => setPickupMemoDraft(e.target.value)}
+              onBlur={() =>
+                onChange({ ...event, pickupMemo: pickupMemoDraft })
+              }
+              placeholder="예: 3시까지 학원 앞으로"
+              className="mb-2 w-full rounded-xl border border-black/10 bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-mint-dark"
+            />
             {pickupPerson && (
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <input
@@ -338,9 +356,10 @@ export default function EventModal({
                   <button
                     key={opt.key}
                     onClick={() => addSection(opt.key)}
-                    className="rounded-xl border border-black/10 bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-black/5"
+                    className="whitespace-nowrap rounded-xl border border-black/10 bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-black/5"
                   >
-                    {opt.emoji} {opt.label}
+                    <span aria-hidden="true">{opt.emoji}</span>
+                    <span className="ml-1">{opt.label}</span>
                   </button>
                 ))}
                 <button

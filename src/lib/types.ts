@@ -26,6 +26,7 @@ export type CalendarEvent = {
   endTime?: string;
   pickupPersonId: string | null;
   pickupChecked: boolean;
+  pickupMemo: string;
   mealMemo: string;
   mealChecked: boolean;
   homework: HomeworkItem[];
